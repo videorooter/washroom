@@ -7,13 +7,13 @@ doing so.
 Videorooter follow roughly the following steps for its work on
 producing a finished data set:
 
- * Routinely retrieve new and changed works from a data source.
- * Translate the information from the data source into a format used
+1. Routinely retrieve new and changed works from a data source.
+2. Translate the information from the data source into a format used
    by Videorooter. This includes any changes or adjustments that need
    to be made to the data.
- * Load this information into the Videorooter database.
+3. Load this information into the Videorooter database.
 
 You will be most interested in:
 
- docs/db/  The database model of Videorooter, the way in which the data
-          should be structured when loaded into Videorooter.
+ * **docs/db/**  The database model of Videorooter, the way in which the data
+                 should be structured when loaded into Videorooter.
