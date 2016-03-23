@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+CAUTION: Do not modify this file unless you know what you are doing.
+         Unexpected results may occur if the code is changed deliberately.
+-->
+<dbmodel pgmodeler-ver="0.8.1-alpha1" last-position="0,0" last-zoom="1"
+	 default-schema="public" default-owner="postgres">
+<database name="new_database">
+</database>
+
+<schema name="public" protected="true" fill-color="#e1e1e1" sql-disabled="true">
+</schema>
+
+<sequence name="work_id_seq"
+	 start="1" increment="1"
+	 min-value="0" max-value="2147483647"
+	 cache="1" cycle="false">
+	<schema name="public"/>
+	<role name="postgres"/>
+</sequence>
+
+<table name="expression">
+	<schema name="public"/>
+	<role name="postgres"/>
+	<position x="195" y="115"/>
+	<column name="expression_id" not-null="true" sequence="public.work_id_seq">
+		<type name="integer"/>
+	</column>
+	<column name="title">
+		<type name="varchar" length="250"/>
+	</column>
+	<column name="description">
+		<type name="varchar" length="2048"/>
+	</column>
+	<column name="rights_statement" not-null="true">
+		<type name="varchar" length="128"/>
+	</column>
+	<column name="media_type" not-null="true">
+		<type name="varchar" length="64"/>
+		<comment><![CDATA[mime-type]]></comment>
+	</column>
+	<column name="credit">
+		<type name="varchar" length="256"/>
+	</column>
+	<column name="credit_url">
+		<type name="varchar" length="1024"/>
+	</column>
+	<column name="updated_date">
+		<type name="timestamp"/>
+	</column>
+	<column name="collection_uri">
+		<type name="varchar" length="128"/>
+	</column>
+	<column name="source_url">
+		<type name="varchar" length="128"/>
+	</column>
+	<constraint name="work_id_pk" type="pk-constr" table="public.expression">
+		<columns names="expression_id" ref-type="src-columns"/>
+	</constraint>
+</table>
+
+<function name="update_timestamp"
+		window-func="false"
+		returns-setof="false"
+		behavior-type="CALLED ON NULL INPUT"
+		function-type="VOLATILE"
+		security-type="SECURITY INVOKER"
+		execution-cost="1"
+		row-amount="0">
+	<schema name="public"/>
+	<role name="postgres"/>
+	<language name="plpgsql" protected="true" sql-disabled="true"/>
+	<return-type>
+	<type name="trigger"/>
+	</return-type>
+	<definition><![CDATA[CREATE OR REPLACE FUNCTION update_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+   NEW.updated_date = now(); 
+   RETURN NEW;
+END;
+$$ language 'plpgsql';
+]]></definition>
+</function>
+
+<table name="manifestation">
+	<schema name="public"/>
+	<role name="postgres"/>
+	<position x="720" y="99"/>
+	<column name="url" not-null="true">
+		<type name="varchar" length="1024"/>
+	</column>
+	<constraint name="url_pk" type="pk-constr" table="public.manifestation">
+		<columns names="url" ref-type="src-columns"/>
+	</constraint>
+
+	<customidxs object-type="column">
+		<object name="expression_id_expression" index="1"/>
+	</customidxs>
+
+	<customidxs object-type="constraint">
+		<object name="expression_fk" index="1"/>
+		<object name="manifestation_uq" index="2"/>
+	</customidxs>
+</table>
+
+<relationship name="expression_has_many_manifestations" type="rel11"
+	 src-col-pattern="{sc}_{st}"
+	 pk-pattern="{dt}_pk" uq-pattern="{dt}_uq"
+	 src-fk-pattern="{st}_fk"
+	 custom-color="#f610c6"
+	 src-table="public.expression"
+	 dst-table="public.manifestation"
+	 src-required="true" dst-required="false"
+	del-action="CASCADE">
+	<label ref-type="name-label">
+		<position x="0" y="0"/>
+	</label>
+</relationship>
+
+<table name="fingerprint">
+	<schema name="public"/>
+	<role name="postgres"/>
+	<position x="1296" y="51"/>
+	<column name="type" not-null="true">
+		<type name="varchar" length="64"/>
+	</column>
+	<column name="hash">
+		<type name="varchar" length="512"/>
+	</column>
+	<column name="updated_date">
+		<type name="timestamp"/>
+	</column>
+
+	<customidxs object-type="column">
+		<object name="url_manifestation" index="3"/>
+	</customidxs>
+
+	<customidxs object-type="constraint">
+		<object name="manifestation_fk" index="0"/>
+	</customidxs>
+</table>
+
+<relationship name="manifestation_has_many_fingerprints" type="rel1n"
+	 src-col-pattern="{sc}_{st}"
+	 pk-pattern="{dt}_pk" uq-pattern="{dt}_uq"
+	 src-fk-pattern="{st}_fk"
+	 custom-color="#064554"
+	 src-table="public.manifestation"
+	 dst-table="public.fingerprint"
+	 src-required="true" dst-required="false">
+	<label ref-type="name-label">
+		<position x="0" y="0"/>
+	</label>
+</relationship>
+
+<constraint name="fingerprint_uniq" type="uq-constr" table="public.fingerprint">
+	<columns names="type,url_manifestation" ref-type="src-columns"/>
+</constraint>
+
+</dbmodel>
