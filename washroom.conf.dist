@@ -1,0 +1,2 @@
+[washroom]
+db=mysql+mysqlconnector://<username>:<password>@<host>/<db>

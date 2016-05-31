@@ -17,3 +17,5 @@ You will be most interested in:
 
  * **docs/db/**  The database model of Videorooter, the way in which the data
                  should be structured when loaded into Videorooter.
+ * **collections/** Scripts which seed the Washroom database with information
+                    from other sources.
