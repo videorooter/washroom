@@ -46,18 +46,18 @@ Manifestation for each encoding of the video.
 | title | varchar(250) | The title of an expression |
 | description | varchar(2048) | |
 | rights_statement | varchar(128) | A URI indicating the Creative Commons license or other rights statement relevant |
-| media_type | varchar(64) | The specific media type, for instance video/ogg |
 | credit | varchar(256) | The author or holder of copyright to which credit is to be given on re-use |
 | credit_url | varchar(1024) | The URL associated to link to on re-use |
 | updated_date | timestamp | Laste updated date |
 | collection_uri | varchar(128) | The URI of a collection identifier |
-| source_url | varchar(128) | The source URL where the expression has been found |
+| source_id | varchar(128) | The source ID where the expression has been found |
 
 ### manifestation
 
 | Column | Type | Explanation |
 | --- | --- | --- |
 | url | varchar(1024) | The URL where the expression is manifested |
+| media_type | varchar(64) | The specific media type, for instance video/ogg |
 | expression_id_expression | integer | Reference to the expression table |
 
 ### fingerprint
@@ -84,3 +84,13 @@ The following fingerprint types are known:
 | --- | --- | --- | --- | --- | --- |
 | urn:blockhash | blockhash perceptual hash algorithm | image/* | https://github.com/commonsmachinery/blockhash-rfc/blob/master/draft-commonsmachinery-urn-blockhash-00.txt | https://github.com/commonsmachinery/blockhash | https://github.com/commonsmachinery/blockhash-python |
 | urn:x-bhvideo-phash | video blockhash with phash fingerprints | video/* | NONE | https://github.com/ivanp2015/blockhash/tree/phash-exp | NONE |
+
+## Collections known
+
+The following collection URIs are known and used:
+
+| URI | Name |
+| --- | --- |
+| http://europeana.eu | Europeana |
+| http://commons.wikimedia.org | Wikimedia Commons |
+

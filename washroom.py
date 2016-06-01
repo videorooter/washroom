@@ -15,6 +15,7 @@ Base = declarative_base()
 class EuropeanaItems(Base):
     __tablename__ = 'europeana_items'
     id = Column(Integer, primary_key=True, autoincrement=True)
+    europeana_id = Column(String(128))
     rights_statement = Column(String(128))
     description = Column(String(2048))
     source_url = Column(String(256))
@@ -64,32 +65,36 @@ class Expression(Base):
     # Allowed:  Any CC URI + defined by rightsstatements.org
     #
     rights_statement = Column(String(128))
-    # 
-    # media_type:  image/jpeg image/gif  image/png video/mpeg video/mp4
-    #              video/ogg  video/webm audio/ogg
-    #
-    media_type = Column(String(64))
     credit = Column(String(500))
     credit_url = Column(String(1024))
     #
     # http://wikimedia.org/
     #
     collection_url = Column(String(128))
-    source_url = Column(String(256))
+    source_id = Column(String(256))
     updated_date = Column(TIMESTAMP, default=datetime.utcnow,
                           nullable=False, onupdate=datetime.utcnow)
     manifestation = relationship('Manifestation', backref="expression")
 
 class Manifestation(Base):
     __tablename__ = 'manifestation'
-    url = Column(String(255), primary_key = True)
+    id = Column(INTEGER(unsigned=True, zerofill=True),
+                Sequence('manifestation_id_seq', start=1, increment=1),
+                primary_key = True)
+    url = Column(String(500))
+    # 
+    # media_type:  image/jpeg image/gif  image/png video/mpeg video/mp4
+    #              video/ogg  video/webm audio/ogg
+    #
+    media_type = Column(String(64))
     expression_id = Column(INTEGER(unsigned=True, zerofill=True), 
                      ForeignKey('expression.id'))
     fingerprint = relationship('Fingerprint', backref="manifestation")
 
 class Fingerprint(Base):
     __tablename__ = 'fingerprint'
-    url = Column(String(255), ForeignKey('manifestation.url'),
+    id = Column(INTEGER(unsigned=True, zerofill=True),
+                Sequence('fingerprint_id_seq', start=1, increment=1),
                 primary_key = True)
     #
     # type
@@ -100,6 +105,8 @@ class Fingerprint(Base):
     hash = Column(String(256))
     updated_date = Column(TIMESTAMP, default=datetime.utcnow,
                           nullable=False, onupdate=datetime.utcnow)
+    manifestation_id = Column(INTEGER(unsigned=True, zerofill=True), 
+                     ForeignKey('manifestation.id'))
  
 Base.metadata.create_all(engine)
 dbsession = sessionmaker(bind=engine)
@@ -110,19 +117,43 @@ session = dbsession()
 #
 #   1. Check all works in Expression, compare updated time against
 #      the last change time of origin. (=> UPDATED if outdated
-#      by timestamp)
-#   2. Check all works in origin, updated since the last expression
-#      was updated  (=> NEW WORKS)
-#   3. Check all fingerprints for all manifestations of all works
-#      and if older than X months, re-calculate?
+#      by timestamp, => DELETE if source work disappears)
+#   2. Check all works in origin which do not exist in Expression
+#      (=> NEW WORKS)
+#
+####
+## Europeana
+####
+cbase = "http://europeana.eu/"
 
-# 2. Check all works in article_images, updated since last in works
-#entity = session.query(Work.updated_date).filter(Work.work_origin == wmbase).order_by(Work.updated_date.desc()).first()
-#if not entity:
-#    last_date = 0
-#else:
-#    last_date = entity.updated_date
+entity = session.query(Expression).filter(Expression.collection_url == cbase).all()
+for row in entity:
+  srcwork = session.query(EuropeanaItems).filter(EuropeanaItems.europeana_id == row.source_id).first()
+  if not srcwork:
+     session.delete(row)
+     session.commit()
+  elif srcwork.updated_date > row.updated_date:
+     session.query(Expression).filter(Expression.id == row.id).update(
+                { Expression.title: srcwork.title,
+                  Expression.description: srcwork.description,
+                  Expression.rights_statement: srcwork.rights_statement,
+                  Expression.credit: srcwork.credit })
+     session.commit()
 
-#entity = session.query(ArticleImages.id).filter(ArticleImages.inserted_date > last_date).order_by(ArticleImages.updated_date).limit(1000).all()
-#for row in entity:
-#  print(row.id)
+
+# 
+entity = session.query(EuropeanaItems).all()
+for row in entity:
+   expwork = session.query(Expression).filter(Expression.source_id == row.europeana_id).first()
+   if not expwork:
+      obj = Expression(rights_statement = row.rights_statement,
+                    source_id = row.europeana_id,
+                    credit = row.credit,
+                    title = row.title,
+                    collection_url = cbase)
+      session.add(obj)
+      session.commit()
+      session.refresh(obj)
+      obj_man = Manifestation(url = row.source_url, expression_id = obj.id)
+      session.add(obj_man)
+      session.commit()

@@ -16,6 +16,7 @@ Base = declarative_base()
 class EuropeanaItem(Base):
     __tablename__ = 'europeana_items'
     id = Column(Integer, primary_key=True, autoincrement=True)
+    europeana_id = Column(String(128))
     rights_statement = Column(String(128))
     description = Column(String(2048))
     source_url = Column(String(256))
@@ -31,12 +32,13 @@ session = dbsession()
 with open('output.json', encoding='utf-8') as data:
     j = json.loads(data.read())
     for item in j:
-        entity = session.query(EuropeanaItem).filter(EuropeanaItem.source_url == item['source_url']).first()
+        entity = session.query(EuropeanaItem).filter(EuropeanaItem.europeana_id == item['id']).first()
         if not entity:
            obj = EuropeanaItem(rights_statement = item['rights_statement'],
                                source_url = item['source_url'],
                                credit = item['credit'],
-                               title = item['title'])
+                               title = item['title'],
+                               europeana_id = item['id'])
            session.add(obj)
            session.commit()
            print("ADD: %s" % obj.source_url)
