@@ -80,10 +80,10 @@ statements outlined in the Europeana and DPLA white paper
 
 The following fingerprint types are known:
 
-| URN | Name | Media types | Specification | Implementation 1 | Implementation 2 |
+| URI | Name | Media types | Specification | Implementation 1 | Implementation 2 |
 | --- | --- | --- | --- | --- | --- |
-| urn:blockhash | blockhash perceptual hash algorithm | image/* | https://github.com/commonsmachinery/blockhash-rfc/blob/master/draft-commonsmachinery-urn-blockhash-00.txt | https://github.com/commonsmachinery/blockhash | https://github.com/commonsmachinery/blockhash-python |
-| urn:x-bhvideo-phash | video blockhash with phash fingerprints | video/* | NONE | https://github.com/ivanp2015/blockhash/tree/phash-exp | NONE |
+| http://videorooter.org/ns/blockhash | blockhash perceptual hash algorithm | image/png image/jpg | https://github.com/commonsmachinery/blockhash-rfc/blob/master/draft-commonsmachinery-urn-blockhash-00.txt | https://github.com/commonsmachinery/blockhash | https://github.com/commonsmachinery/blockhash-python |
+| http://videorooter.org/ns/x-blockhash-video-cv | video blockhash with opencv fingerprints | video/mp4 | NONE | https://github.com/jonasob/blockhash/tree/master | NONE |
 
 ## Collections known
 
