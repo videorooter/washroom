@@ -13,7 +13,7 @@ from dbmodel import Expression, Manifestation, Fingerprint, Base, WikimediaItems
 from tabulate import tabulate
 
 config = configparser.ConfigParser()
-config.read('washroom.conf')
+config.read("%s/%s" % (os.path.dirname(os.path.realpath(__file__)), 'washroom.conf'))
 
 engine = create_engine(config['washroom']['db'])
 
