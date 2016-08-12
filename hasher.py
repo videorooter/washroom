@@ -39,7 +39,7 @@ hashers = {
               },
              'http://videorooter.org/ns/x-blockhash-video-cv': {
                 'command': '/home/api/algorithms/jonasob-blockhash-master/build/blockhash_video',
-                'types': ['video/mp4', 'video/mpeg', 'video/webm'],
+                'types': ['video/mp4', 'video/mpeg', 'video/ogg', 'video/webm'],
               },
           }
 
@@ -48,8 +48,8 @@ for k,v in hashers.items():
   q = session.query(Manifestation).filter(and_(~Manifestation.id.in_(man_ids),Manifestation.media_type.in_(v['types']))).limit(100)
   entity = q.all()
   for row in entity:
-     filename, headers = urllib.request.urlretrieve(row.url)
      try:
+       filename, headers = urllib.request.urlretrieve(row.url)
        cmd = subprocess.check_output([v['command'], filename], stderr=subprocess.DEVNULL)
        if cmd.split()[0]:
           f = Fingerprint(type = k, hash=cmd.split()[0],
@@ -61,7 +61,7 @@ for k,v in hashers.items():
                           manifestation_id=row.id)
           session.add(f)
           session.commit()
-     except subprocess.CalledProcessError:
+     except:
           f = Fingerprint(type = k, hash='FAILED2',
                           manifestation_id=row.id)
           session.add(f)

@@ -1,5 +1,5 @@
 #! /usr/bin/python3
-from sqlalchemy import create_engine, Column, Integer, Sequence, String, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, Sequence, String, ForeignKey, Boolean
 from sqlalchemy.dialects.mysql import DATETIME, TIMESTAMP, TEXT, INTEGER
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
@@ -19,6 +19,28 @@ class EuropeanaItems(Base):
     credit = Column(String(500))
     updated_date = Column(TIMESTAMP, default=datetime.utcnow,
                           nullable=False, onupdate=datetime.utcnow)
+
+class WikimediaItems(Base):
+    __tablename__ = 'wikimedia_items'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    updated_date = Column(TIMESTAMP, default=datetime.utcnow,
+                          nullable=False, onupdate=datetime.utcnow)
+    #
+    # The title is used as a unique identifier for a work in the ETL
+    # stage.
+    #
+    timestamp = Column(TIMESTAMP)
+    title = Column(String(500))
+    user = Column(String(100))
+    url = Column(TEXT)
+    mime = Column(String(250))
+    descriptionurl = Column(TEXT) # Useful as unique ID
+    artist = Column(TEXT)
+    copyrighted = Column(Boolean)
+    imagedescription = Column(TEXT)
+    license_shortname = Column(String(250))
+    license_url = Column(String(250))
+    derived_mime = Column(String(250))
 
 class ArticleImages(Base):
     __tablename__ = 'article_images'

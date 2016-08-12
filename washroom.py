@@ -6,113 +6,24 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from datetime import datetime
 import mimetypes
+import logging
+import urllib.request
+import magic
+import os
+from dbmodel import Expression, Manifestation, Fingerprint, Base, WikimediaItems, EuropeanaItems
 
 config = configparser.ConfigParser()
 config.read('washroom.conf')
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)8s  %(message)s')
+log = logging.getLogger('washroom')
 
 engine = create_engine(config['washroom']['db'])
-Base = declarative_base()
 
-class EuropeanaItems(Base):
-    __tablename__ = 'europeana_items'
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    europeana_id = Column(String(128))
-    rights_statement = Column(String(128))
-    description = Column(String(2048))
-    source_url = Column(String(256))
-    title = Column(String(500))
-    credit = Column(String(500))
-    updated_date = Column(TIMESTAMP, default=datetime.utcnow,
-                          nullable=False, onupdate=datetime.utcnow)
-
-class ArticleImages(Base):
-    __tablename__ = 'article_images'
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    #
-    # The title is used as a unique identifier for a work in the ETL
-    # stage.
-    #
-    title = Column(String(150))
-    userid = Column(String(100))
-    img_url = Column(TEXT)
-    sha1 = Column(String(150))
-    artist = Column(String(250))
-    object_name = Column(String(250))
-    credit = Column(String(250))
-    usage_terms = Column(String(250))
-    license_url = Column(String(150))
-    license_shortname = Column(String(250)) 
-    imagedescription = Column(String(250))     
-    copyrighted = Column(String(50))
-    timestamp = Column(String(150))            
-    continue_code = Column(String(250))  
-    is_copied = Column(Integer)
-    mime_type_values = Column(String(150))
-    is_from_dump = Column(Integer)
-    block_hash_code = Column(String(250))
-    is_video = Column(Integer)
-    inserted_date = Column(TIMESTAMP)
-    updated_date = Column(DATETIME)
-    api_from = Column(Integer)
-
-class Expression(Base):
-    __tablename__ = 'expression'
-    id = Column(INTEGER(unsigned=True, zerofill=True),
-                Sequence('expression_id_seq', start=1, increment=1),
-                primary_key = True)
-    title = Column(String(500))
-    description = Column(String(2048))
-    # 
-    # Allowed:  Any CC URI + defined by rightsstatements.org
-    #
-    rights_statement = Column(String(128))
-    credit = Column(String(500))
-    credit_url = Column(String(1024))
-    #
-    # http://wikimedia.org/
-    #
-    collection_url = Column(String(128))
-    source_id = Column(String(256))
-    updated_date = Column(TIMESTAMP, default=datetime.utcnow,
-                          nullable=False, onupdate=datetime.utcnow)
-    manifestation = relationship('Manifestation', backref="expression")
-
-class Manifestation(Base):
-    __tablename__ = 'manifestation'
-    id = Column(INTEGER(unsigned=True, zerofill=True),
-                Sequence('manifestation_id_seq', start=1, increment=1),
-                primary_key = True)
-    url = Column(String(500))
-    # 
-    # media_type:  image/jpeg image/gif  image/png video/mpeg video/mp4
-    #              video/ogg  video/webm audio/ogg
-    #
-    media_type = Column(String(64))
-    expression_id = Column(INTEGER(unsigned=True, zerofill=True), 
-                     ForeignKey('expression.id'))
-    fingerprint = relationship('Fingerprint', backref="manifestation")
-
-class Fingerprint(Base):
-    __tablename__ = 'fingerprint'
-    id = Column(INTEGER(unsigned=True, zerofill=True),
-                Sequence('fingerprint_id_seq', start=1, increment=1),
-                primary_key = True)
-    #
-    # type
-    #   application/x-blockhash (default image algo)
-    #   application/x-blockhash-video-j (video algo from jonaso w/ bh)
-    #
-    type = Column(String(64))
-    hash = Column(String(256))
-    updated_date = Column(TIMESTAMP, default=datetime.utcnow,
-                          nullable=False, onupdate=datetime.utcnow)
-    manifestation_id = Column(INTEGER(unsigned=True, zerofill=True), 
-                     ForeignKey('manifestation.id'))
- 
 Base.metadata.create_all(engine)
 dbsession = sessionmaker(bind=engine)
 session = dbsession()
 
+log.debug('Initialized')
 # 
 #  Here's the main principle of the washroom:
 #
@@ -125,6 +36,7 @@ session = dbsession()
 ####
 ## Europeana
 ####
+log.info('Starting work on Europeana')
 cbase = "http://europeana.eu/"
 
 entity = session.query(Expression).filter(Expression.collection_url == cbase).all()
@@ -142,7 +54,7 @@ for row in entity:
      session.commit()
 
 
-# 
+log.info('First pass Europeana complete')
 entity = session.query(EuropeanaItems).all()
 for row in entity:
    expwork = session.query(Expression).filter(Expression.source_id == row.europeana_id).first()
@@ -160,3 +72,34 @@ for row in entity:
                               media_type = mime_type)
       session.add(obj_man)
       session.commit()
+
+log.info('Europeana complete and updated')
+
+## Wikimedia
+cbase = 'http://commons.wikimedia.org/'
+log.info('Starting work on Wikimedia Commons')
+
+# First order of business: get all works with mime type 'application/ogg'
+# as we have no clue if they are audio or video. Only way to know is to
+# retrieve each work and process it with filemagic
+#
+m = magic.Magic(flags=magic.MAGIC_MIME_TYPE)
+
+entity = session.query(WikimediaItems).filter(WikimediaItems.mime == 'application/ogg', WikimediaItems.derived_mime == None)
+n = 0
+for row in entity.all():
+  n = n + 1
+  log.debug('Requesting')
+  try:
+    filename, headers = urllib.request.urlretrieve(row.url)
+  except urllib.error.HTTPError:
+    continue
+  log.debug('Identifying')
+  l = m.id_filename(filename)
+  if l == 'audio/ogg' or l == 'video/ogg':
+     log.debug('Identified id %d as %s' % (row.id, l))
+     session.query(WikimediaItems).filter(WikimediaItems.id == row.id).update({ WikimediaItems.derived_mime: l })
+  if n % 100 == 0:
+     session.commit()
+  os.unlink(filename)
+session.commit()
